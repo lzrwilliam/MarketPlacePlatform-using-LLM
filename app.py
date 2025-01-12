@@ -43,6 +43,7 @@ model = genai.GenerativeModel(
     generation_config=generation_config
 )
 
+
 def generate_personalized_description(product_name, category, user_id):
     """Generare descriere personalizata in functie de comportamentul utilizatorului"""
     interactions = UserInteraction.query.filter_by(user_id=user_id).all()
@@ -64,7 +65,6 @@ def generate_personalized_description(product_name, category, user_id):
         return "Descriere indisponibilă."
 
 def get_recommended_products(user_id):
-    """Recomandări hibride pe baza vizualizărilor, achizițiilor și popularității"""
     viewed = UserInteraction.query.filter_by(user_id=user_id).order_by(UserInteraction.id.desc()).limit(10).all()
     purchased = PurchaseHistory.query.filter_by(user_id=user_id).limit(5).all()
     
@@ -75,11 +75,72 @@ def get_recommended_products(user_id):
 
     produse_recomandate = (
         Product.query.filter(Product.category.in_(all_categories))
-        .order_by(Product.purchases.desc(), Product.views.desc())
+        .order_by((Product.purchases * 0.7) + (Product.views * 0.3))
         .limit(5)
         .all()
     )
+
+    if len(produse_recomandate) < 5:
+        produse_populare = Product.query.order_by(Product.purchases.desc(), Product.views.desc()).limit(5).all()
+        produse_recomandate.extend(produse_populare)
+        produse_recomandate = list(set(produse_recomandate))
+
     return produse_recomandate
+
+
+def get_content_based_recommendations(product):
+    all_products = Product.query.filter(Product.id != product.id).all()
+    
+    try:
+        chat_session = model.start_chat(history=[])
+        prompt = f"Convert the following product description into a numeric vector for similarity comparison: '{product.description}'"
+        response = chat_session.send_message(prompt)
+        
+        try:
+            current_vector = [float(x) for x in response.text.strip().split(",")]
+        except ValueError:
+            print("Invalid vector response, using name and category fallback:", response.text)
+            # Dacă vectorul nu poate fi creat, fallback pe nume și categorie
+            return Product.query.filter(
+                Product.category == product.category, Product.id != product.id
+            ).order_by(Product.views.desc()).limit(5).all()
+        
+        similar_products = []
+        for prod in all_products:
+            prompt = f"Convert the following product description into a vector representation: '{prod.description}'"
+            response = chat_session.send_message(prompt)
+            
+            try:
+                product_vector = [float(x) for x in response.text.strip().split(",")]
+                similarity_score = sum(a * b for a, b in zip(current_vector, product_vector))
+                
+                # ✅ Calculăm și similaritatea pe baza numelui (similaritatea cosinus)
+                name_similarity = 1.0 if product.name.lower() in prod.name.lower() else 0.5
+                
+                # ✅ Formula hibridă: 70% descriere, 30% nume similar
+                final_score = (similarity_score * 0.7) + (name_similarity * 0.3)
+                
+                similar_products.append((prod, final_score))
+            except ValueError:
+                print(f"Eroare la conversia vectorului pentru produsul: {prod.name}")
+                continue  
+
+        # ✅ Sortare după scorul combinat
+        if similar_products:
+            similar_products = sorted(similar_products, key=lambda x: x[1], reverse=True)[:5]
+            return [prod[0] for prod in similar_products]
+        else:
+            # Fallback: bazat doar pe categorie
+            return Product.query.filter(
+                Product.category == product.category, Product.id != product.id
+            ).limit(5).all()
+    
+    except Exception as e:
+        print(f"Eroare în generarea recomandărilor bazate pe conținut: {str(e)}")
+        return Product.query.filter(
+            Product.category == product.category, Product.id != product.id
+        ).limit(5).all()
+
 
 def login_required(f):
     @wraps(f)
@@ -120,12 +181,7 @@ def popular_products():
 def home():
     produse = Product.query.all()
     produse_recomandate = get_recommended_products(session.get('user_id'))
-    
-    return render_template("index.html", 
-                           produse=produse, 
-                           produse_recomandate=produse_recomandate, 
-                           user_role=session.get('role'))
-
+    return render_template("index.html", produse=produse, produse_recomandate=produse_recomandate, user_role=session.get('role'))
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -227,17 +283,18 @@ def generate_description():
 
 @app.route("/view_product/<int:product_id>")
 def view_product(product_id):
-    product = Product.query.get(product_id)
+    product = Product.query.get_or_404(product_id)
     product.views += 1
     db.session.commit()
 
     personalized_description = generate_personalized_description(product.name, product.category, session["user_id"])
+    similar_products = get_content_based_recommendations(product)
 
     new_interaction = UserInteraction(user_id=session["user_id"], product_id=product_id)
     db.session.add(new_interaction)
     db.session.commit()
-    
-    return render_template("view_product.html", product=product, personalized_description=personalized_description)
+
+    return render_template("view_product.html", product=product, personalized_description=personalized_description, similar_products=similar_products)
 
 @app.route("/purchase/<int:product_id>")
 def purchase_product(product_id):

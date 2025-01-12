@@ -15,6 +15,21 @@
     <p><strong>Descriere:</strong> {{ product.description }}</p>
     <p><strong>Descriere Personalizată:</strong> {{ personalized_description }}</p>
 
+    <h3 class="mt-5">Produse Similare</h3>
+    <div class="row">
+        {% for similar in similar_products %}
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>{{ similar.name }}</h5>
+                    <p>Preț: {{ similar.price }} RON</p>
+                    <a href="{{ url_for('view_product', product_id=similar.id) }}" class="btn btn-secondary">Vezi Detalii</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
     <a href="/" class="btn btn-secondary mt-4">Înapoi la Produse</a>
 </div>
 
