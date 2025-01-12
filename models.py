@@ -39,4 +39,14 @@ class User(db.Model):
     
     def __repr__(self):
         return f"User('{self.username}', '{self.role}')"
-        
+    
+    
+
+class PurchaseHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    user = db.relationship('User', backref=db.backref('purchases', lazy=True))
+    product = db.relationship('Product', backref=db.backref('purchases_history', lazy=True))

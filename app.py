@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session,flash
-from models import db, Product, UserInteraction, User
+from models import db, Product, UserInteraction, User, PurchaseHistory
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -44,14 +44,13 @@ model = genai.GenerativeModel(
 )
 
 
-
-def generate_personalized_description(name, category, user_id):
+def generate_personalized_description(product_name, category, user_id):
     interactions = UserInteraction.query.filter_by(user_id=user_id).all()
     viewed_categories = [Product.query.get(i.product_id).category for i in interactions]
 
     try:
         chat_session = model.start_chat(history=[])
-        prompt = f"Generate a personalized product description for '{name}' in the '{category}' category."
+        prompt = f"Generate a personalized product description for '{product_name}' in the '{category}' category."
 
         if viewed_categories:
             prompt += f" The user has interacted with these categories before: {', '.join(viewed_categories)}."
@@ -62,16 +61,16 @@ def generate_personalized_description(name, category, user_id):
         return "Descriere indisponibilă."
 
 def get_recommended_products(user_id):
-    """Generarea dinamică a produselor recomandate pe baza interacțiunilor recente."""
-    interactions = UserInteraction.query.filter_by(user_id=user_id).order_by(UserInteraction.id.desc()).limit(10).all()
-    viewed_categories = [Product.query.get(i.product_id).category for i in interactions]
+    viewed = UserInteraction.query.filter_by(user_id=user_id).order_by(UserInteraction.id.desc()).limit(10).all()
+    purchased = PurchaseHistory.query.filter_by(user_id=user_id).limit(5).all()
+    
+    viewed_categories = [Product.query.get(i.product_id).category for i in viewed]
+    purchased_categories = [Product.query.get(i.product_id).category for i in purchased]
 
-    if not viewed_categories:
-        return []
+    all_categories = list(set(viewed_categories + purchased_categories))
 
     produse_recomandate = (
-        Product.query
-        .filter(Product.category.in_(viewed_categories))
+        Product.query.filter(Product.category.in_(all_categories))
         .order_by(Product.views.desc(), Product.purchases.desc())
         .limit(5)
         .all()
@@ -217,9 +216,13 @@ def purchase_product(product_id):
     product = Product.query.get(product_id)
     product.purchases += 1
     db.session.commit()
-    flash("Produs achiziționat cu succes!")
-    return redirect(url_for('home'))
 
+    new_purchase = PurchaseHistory(user_id=session["user_id"], product_id=product_id)
+    db.session.add(new_purchase)
+    db.session.commit()
+
+    flash("Produs achiziționat!")
+    return redirect(url_for("home"))
 
     
     
