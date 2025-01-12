@@ -43,30 +43,23 @@
     </select>
 </div>
 
-<!-- Carousel pentru Produse Recomandate -->
+
+<!-- Grid pentru Produse Recomandate cu mai multe produse per rând -->
 <div class="container mt-5">
     <h1 class="text-center mb-4">Produse Recomandate</h1>
-    <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-inner">
-            {% for produs in produse_recomandate %}
-            <div class="carousel-item {% if loop.first %}active{% endif %}">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ produs.name }}</h5>
-                        <p class="card-text"><strong>Preț:</strong> {{ produs.price }} RON</p>
-                        <p class="card-text"><strong>Categorie:</strong> {{ produs.category }}</p>
-                        <a href="{{ url_for('view_product', product_id=produs.id) }}" class="btn btn-primary">Vezi Detalii</a>
-                    </div>
+    <div class="row">
+        {% for produs in produse_recomandate %}
+        <div class="col-md-4 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ produs.name }}</h5>
+                    <p class="card-text"><strong>Preț:</strong> {{ produs.price }} RON</p>
+                    <p class="card-text"><strong>Categorie:</strong> {{ produs.category }}</p>
+                    <a href="{{ url_for('view_product', product_id=produs.id) }}" class="btn btn-primary">Vezi Detalii</a>
                 </div>
             </div>
-            {% endfor %}
         </div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-        </button>
+        {% endfor %}
     </div>
 </div>
 
