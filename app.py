@@ -283,6 +283,7 @@ def generate_description():
     try:
         chat_session = model.start_chat(history=[])
         prompt = (f"Generate a professional and creative product description for the product '{name}' in the '{category}' category. Highlight its unique features and benefits."
+                 f"Be careful when generating the description, at cases such as name suggests a different category than the one provided. if so, please adjust the description accordingly, not to be an absurd one."
                 f"The output must be in romanian."
 )
         response = chat_session.send_message(prompt)
