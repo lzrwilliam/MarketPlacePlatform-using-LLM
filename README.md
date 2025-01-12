@@ -37,6 +37,13 @@ This is a web-based e-commerce platform built using Flask and SQLAlchemy, with i
 2. Install the required packages:
    ```bash
    pip install flask sqlalchemy google-genai
+
+   If the project fails to run, ensure all required dependencies are installed using the command below:
+   '''bash
+   pip install -r requirements.txt
+
+
+
    ```
 3. Set up the database:
    ```bash
