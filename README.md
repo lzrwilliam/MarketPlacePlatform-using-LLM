@@ -47,7 +47,7 @@ This is a web-based e-commerce platform built using Flask and SQLAlchemy, with i
 
 
 
-   ```
+   
 4. Set up the database:
    ```bash
    The database will be created automatically when you run the project
