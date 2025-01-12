@@ -8,28 +8,55 @@
 </head>
 <body class="bg-light">
 
+{% extends 'base.html' %}
+{% block title %}Rapoarte Utilizatori{% endblock %}
+
+{% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4">Rapoarte Utilizatori</h1>
+    <h1 class="text-center mb-5">👥 Rapoarte Utilizatori</h1>
     
     {% for user, data in user_reports.items() %}
-        <h3 class="mt-4">{{ user }}</h3>
-        <p><strong>Produse Vizualizate:</strong></p>
-        <ul>
-            {% for interaction in data.interactions %}
-                <li>{{ interaction.product_id }} - Timp petrecut: {{ interaction.time_spent }} secunde</li>
-            {% endfor %}
-        </ul>
+        <div class="card mb-5 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{{ user }}</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>📊 Produse Vizualizate:</strong></p>
+                
+                <ul class="list-group">
+                    {% set unique_interactions = {} %}
+                    {% for interaction in data.interactions %}
+                        {% if interaction.product_id not in unique_interactions %}
+                            {% set _dummy = unique_interactions.update({interaction.product_id: interaction.time_spent}) %}
+                        {% else %}
+                            {% set _dummy = unique_interactions.update({interaction.product_id: unique_interactions[interaction.product_id] + interaction.time_spent}) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% for product_id, total_time in unique_interactions.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            ID Produs: {{ product_id }} 
+                            <span class="badge bg-secondary rounded-pill">Timp: {{ total_time }} secunde</span>
+                        </li>
+                    {% endfor %}
+                </ul>
 
-        <p><strong>Produse Achiziționate:</strong></p>
-        <ul>
-            {% for purchase in data.purchased_products %}
-                <li>{{ purchase.product_id }}</li>
-            {% endfor %}
-        </ul>
+                <p class="mt-4"><strong>🛍️ Produse Achiziționate:</strong></p>
+                <ul class="list-group">
+                    {% for purchase in data.purchased_products %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            ID Produs: {{ purchase.product_id }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     {% endfor %}
 
-    <a href="/" class="btn btn-secondary mt-4">Înapoi la Acasă</a>
+    <div class="text-center mt-5">
+        <a href="/" class="btn btn-primary">🏠 Acasa</a>
+    </div>
 </div>
+{% endblock %}
 
 </body>
 </html>
