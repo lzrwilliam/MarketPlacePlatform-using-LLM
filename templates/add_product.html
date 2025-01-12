@@ -3,7 +3,7 @@
 {% block title %}Adăugare Produs{% endblock %}
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4">Adauga un Produs Nou</h1>
+    <h1 class="text-center mb-4">Adaugă un Produs Nou</h1>
     
     <form method="POST" action="{{ url_for('add_product') }}" class="p-4 bg-white shadow rounded" id="productForm">
         <!-- Nume Produs -->
@@ -13,8 +13,8 @@
         </div>
         
         <!-- Buton pentru generarea categoriei -->
-        <button type="button" class="btn btn-warning mb-3" id="suggestCategoryBtn">Sugereaza Categoria</button>
-        <p><strong>Categorie Recomandată:</strong> <span id="suggestedCategory">Nicio categorie sugerata</span></p>
+        <button type="button" class="btn btn-warning mb-3" id="suggestCategoryBtn">Sugerează Categoria</button>
+        <p><strong>Categorie Recomandată:</strong> <span id="suggestedCategory">Nicio categorie sugerată</span></p>
         
         <!-- Dropdown Categorie -->
         <div class="mb-3">
@@ -32,18 +32,24 @@
             <input type="number" class="form-control" id="price" name="price" required step="0.01">
         </div>
 
+        <!-- Cuvinte cheie pentru generarea descrierii -->
+        <div class="mb-3">
+            <label for="keywords" class="form-label">Cuvinte cheie pentru descriere (opțional, separate prin virgulă):</label>
+            <input type="text" class="form-control" id="keywords" name="keywords" placeholder="Ex: elegant, performant, accesibil">
+        </div>
+
         <!-- Buton pentru generarea descrierii -->
         <button type="button" class="btn btn-secondary mb-3" id="generateBtn">Generează Descriere</button>
 
-        <!-- Descrierea Generata -->
+        <!-- Descrierea Generată - Acum poate fi editată -->
         <div class="mb-3">
-            <label for="description" class="form-label">Descriere Sugerata:</label>
-            <textarea class="form-control" id="description" name="description" rows="4" readonly></textarea>
+            <label for="description" class="form-label">Descriere Sugerata (editabila):</label>
+            <textarea class="form-control" id="description" name="description" rows="4"></textarea>
         </div>
         
-        <!-- Buton de Adaugare Produs -->
-        <button type="submit" class="btn btn-primary w-100">Adauga Produs</button>
-        <a href="/" class="btn btn-secondary w-100 mt-3">Inapoi la Produse</a>
+        <!-- Buton de Adăugare Produs -->
+        <button type="submit" class="btn btn-primary w-100">Adaugă Produs</button>
+        <a href="/" class="btn btn-secondary w-100 mt-3">Înapoi la Produse</a>
     </form>
 </div>
 {% endblock %}
@@ -51,14 +57,12 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        console.log(" JavaScript incarcat complet!");
+        console.log("✅ JavaScript încărcat complet!");
 
         document.getElementById('suggestCategoryBtn').addEventListener('click', async function () {
             const name = document.getElementById('name').value.trim();
-            console.log("Sugestie categorie apasata!", name);
-
             if (!name) {
-                alert("Introduceti numele produsului inainte de a sugera categoria!");
+                alert("Introduceți numele produsului înainte de a sugera categoria!");
                 return;
             }
 
@@ -71,7 +75,6 @@
                     body: new URLSearchParams({name: name})
                 });
                 const data = await response.json();
-                console.log("Raspuns server:", data);
                 if (data.suggested_category) {
                     document.getElementById('suggestedCategory').textContent = data.suggested_category;
                     document.getElementById('category').value = data.suggested_category;
@@ -86,10 +89,15 @@
         document.getElementById('generateBtn').addEventListener('click', async function () {
             const name = document.getElementById('name').value.trim();
             const category = document.getElementById('category').value.trim();
-            console.log("Generare descriere apăsată!", name, category);
+            const keywords = document.getElementById('keywords').value.trim();
+
+            if (keywords && !/^[a-zA-Z0-9ăîâșț ,]+$/.test(keywords)) {
+                alert("Cuvintele cheie trebuie sa fie separate corect prin virgula!");
+                return;
+            }
 
             if (!name || !category) {
-                alert("Completati numele si categoria inainte de a genera descrierea!");
+                alert("Introduceți numele și categoria înainte de a genera descrierea!");
                 return;
             }
 
@@ -99,10 +107,9 @@
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams({name: name, category: category})
+                    body: new URLSearchParams({name: name, category: category, keywords: keywords})
                 });
                 const data = await response.json();
-                console.log("Raspuns server pentru descriere:", data);
                 if (data.description) {
                     document.getElementById('description').value = data.description;
                 } else {

@@ -276,6 +276,7 @@ def suggest_category():
 def generate_description():
     name = request.form.get('name')
     category = request.form.get('category')
+    keywords = request.form.get('keywords')
 
     if not name or not category:
         return jsonify({"error": "Numele si categoria sunt necesare!"})
@@ -284,6 +285,8 @@ def generate_description():
         chat_session = model.start_chat(history=[])
         prompt = (f"Generate a professional and creative product description for the product '{name}' in the '{category}' category. Highlight its unique features and benefits."
                  f"Be careful when generating the description, at cases such as name suggests a different category than the one provided. if so, please adjust the description accordingly, not to be an absurd one."
+                 f"Use the keywords '{keywords}' to enhance the description."
+                 f"Do not generate a too long description, keep it concise and informative, but not too short either.s"
                 f"The output must be in romanian."
 )
         response = chat_session.send_message(prompt)
@@ -435,6 +438,7 @@ def generate_review(product_id):
         prompt = (
             f"Generate a high-quality review for '{product.name}' with a rating of {rating} stars. "
             f"Include these aspects: {', '.join(keywords)}"
+            f"The output must be in romanian."
         )
         response = chat_session.send_message(prompt)
         generated_review = response.text.strip()
