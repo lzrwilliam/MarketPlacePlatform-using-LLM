@@ -82,6 +82,4 @@ This is a web-based e-commerce platform built using Flask and SQLAlchemy, with i
 - Implement multilingual support.
 - Optimize the moderation filter for better accuracy.
 
-## License
-This project is licensed under the MIT License.
 
