@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session,flash
-from models import db, Product, UserInteraction, User, PurchaseHistory
+from models import db, Product, UserInteraction, User, PurchaseHistory, Review
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -384,8 +384,52 @@ def user_reports():
         }
     return render_template("user_reports.html", user_reports=user_reports)
     
+@app.route('/add_review/<int:product_id>', methods=["POST"])
+@login_required
+def add_review(product_id):
+    """Adaugă un review scris de utilizator sau generat de LLM"""
+    rating = int(request.form.get('rating'))
+    content = request.form.get('content')
+    existing_review = Review.query.filter_by(user_id=session["user_id"], product_id=product_id).first()
     
-  
+    if existing_review:
+        flash("Ai deja un review pentru acest produs!")
+        return redirect(url_for('view_product', product_id=product_id))
+    
+    new_review = Review(
+        user_id=session["user_id"],
+        product_id=product_id,
+        rating=rating,
+        content=content
+    )
+    db.session.add(new_review)
+    db.session.commit()
+    flash("Review adăugat cu succes!")
+    return redirect(url_for('view_product', product_id=product_id))
+
+
+@app.route('/generate_review/<int:product_id>', methods=["POST"])
+@login_required
+def generate_review(product_id):
+    """Generează un review folosind LLM"""
+    data = request.get_json()
+    rating = data.get("rating")
+    keywords = data.get("keywords", "").split(',')
+
+    product = Product.query.get(product_id)
+    try:
+        chat_session = model.start_chat(history=[])
+        prompt = (
+            f"Generate a high-quality review for '{product.name}' with a rating of {rating} stars. "
+            f"Include these aspects: {', '.join(keywords)}"
+        )
+        response = chat_session.send_message(prompt)
+        generated_review = response.text.strip()
+        return jsonify({"generated_review": generated_review})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,19 +1,7 @@
-<!DOCTYPE html>
-<html lang="ro">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ product.name }}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</head>
-<body class="bg-light">
-
 {% extends 'base.html' %}
 {% block title %}Detalii Produs{% endblock %}
 
 {% block content %}
-
 <!-- Secțiune principală pentru produs -->
 <div class="container mt-5 p-4 bg-white shadow-sm rounded">
     <h1 class="text-center mb-4">{{ product.name }}</h1>
@@ -27,7 +15,7 @@
             </ul>
             <div class="text-center mt-4">
                 <a href="{{ url_for('purchase_product', product_id=product.id) }}" class="btn btn-success btn-lg">
-                    Cumpără Acum
+                    🛒 Cumpără Acum
                 </a>
             </div>
         </div>
@@ -52,13 +40,150 @@
     </div>
 </div>
 
-<!-- Script pentru monitorizarea timpului petrecut pe pagină -->
+<!-- Secțiune Recenzii -->
+<div class="container mt-5 p-4 bg-white shadow-sm rounded">
+    <h2 class="text-center mb-4">Recenzii Utilizatori</h2>
+    {% if product.reviews %}
+        {% for review in product.reviews %}
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-body">
+                <p>
+                    <strong>⭐ Rating: {{ review.rating }} / 5</strong>
+                </p>
+                <p><em>{{ review.content }}</em></p>
+                <small class="text-muted">Review de: {{ review.user.username }} la {{ review.created_at.strftime('%d %B %Y') }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>Momentan nu există review-uri pentru acest produs.</p>
+    {% endif %}
+</div>
+
+<!-- Adăugare Review -->
+<div class="container mt-5 p-4 bg-white shadow-sm rounded">
+    <h2 class="text-center mb-4">Adaugă un Review</h2>
+    <form method="POST" action="{{ url_for('add_review', product_id=product.id) }}">
+        
+        <div class="mb-3 text-center">
+            <label for="rating"><strong>Alege un rating:</strong></label>
+            <div class="rating-stars" id="rating-stars">
+                <input type="radio" name="rating" value="5" id="star5">
+                <label for="star5" onclick="setRating(5)">&#9733;</label>
+                <input type="radio" name="rating" value="4" id="star4">
+                <label for="star4" onclick="setRating(4)">&#9733;</label>
+                <input type="radio" name="rating" value="3" id="star3">
+                <label for="star3" onclick="setRating(3)">&#9733;</label>
+                <input type="radio" name="rating" value="2" id="star2">
+                <label for="star2" onclick="setRating(2)">&#9733;</label>
+                <input type="radio" name="rating" value="1" id="star1">
+                <label for="star1" onclick="setRating(1)">&#9733;</label>
+            </div>
+        </div>
+
+        <!-- Cuvinte Cheie pentru Generarea Review-ului -->
+        <div class="mb-3">
+            <label for="keywords" class="form-label">Cuvinte cheie pentru LLM (opțional)</label>
+            <input type="text" class="form-control" name="keywords" id="keywords" placeholder="Ex: durabil, design modern, calitate superioară">
+        </div>
+
+        <!-- Generare Review Automat cu LLM -->
+        <button type="button" class="btn btn-info mb-3" onclick="generateReview()">🎯 Generează Review Automat</button>
+
+        <!-- Textarea pentru Review -->
+        <div class="mb-3">
+            <label for="content" class="form-label">Scrie Review-ul Tău</label>
+            <textarea class="form-control" name="content" id="content" rows="3" required></textarea>
+        </div>
+
+        <!-- Buton de Adăugare Review -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">✅ Adaugă Review</button>
+        </div>
+    </form>
+</div>
+<style>
+    .rating-stars {
+        direction: ltr;
+        display: flex;
+        justify-content: center;
+        font-size: 2.5rem;
+        gap: 10px;
+    }
+    
+    .rating-stars input {
+        display: none; 
+    }
+    
+    .rating-stars label {
+        cursor: pointer;
+        color: #ccc; /* Gri implicit */
+        transition: color 0.3s ease;
+    }
+    
+    /* Hover - doar la hover */
+    .rating-stars label:hover,
+    .rating-stars label:hover ~ label {
+        color: gold;
+    }
+    
+    /* Selectat - doar când se alege ratingul */
+    .rating-stars input:checked + label,
+    .rating-stars input:checked + label ~ label {
+        color: gold;
+    }
+    </style>
+<script>
+    async function generateReview() {
+        const keywords = document.getElementById('keywords').value;
+        const rating = document.querySelector('input[name="rating"]:checked')?.value;
+
+        if (!rating) {
+            alert("Selectează un rating înainte de a genera review-ul!");
+            return;
+        }
+
+        try {
+            const response = await fetch("{{ url_for('generate_review', product_id=product.id) }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ rating: rating, keywords: keywords })
+            });
+
+            const data = await response.json();
+            if (data.generated_review) {
+                document.getElementById('content').value = data.generated_review;
+            } else {
+                alert("A apărut o eroare la generarea review-ului.");
+            }
+        } catch (error) {
+            alert("Eroare la generarea review-ului.");
+            console.error(error);
+        }
+    }
+
+    function setRating(rating) {
+    const stars = document.querySelectorAll('.rating-stars label');
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.style.color = 'gold';
+        } else {
+            star.style.color = '#ccc';
+        }
+    });
+    document.getElementById('star' + rating).checked = true;
+}
+</script>
+
+<!-- Script pentru Monitorizarea Timpului Petrecut pe Pagină -->
 <script>
     var startTime = new Date().getTime();
 
     window.addEventListener('beforeunload', async function() {
         var endTime = new Date().getTime();
-        var timeSpent = (endTime - startTime) / 1000; 
+        var timeSpent = (endTime - startTime) / 1000;
 
         try {
             await fetch('/track_time/{{ product.id }}', {
@@ -66,14 +191,12 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ "time_spent": timeSpent }) 
+                body: JSON.stringify({ "time_spent": timeSpent })
             });
         } catch (error) {
             console.error('Eroare la trimiterea datelor de timp:', error);
         }
     });
 </script>
-
 {% endblock %}
 </body>
-</html>
