@@ -41,7 +41,7 @@ This is a web-based e-commerce platform built using Flask and SQLAlchemy, with i
    ```
 
    If the project fails to run, ensure all required dependencies are installed using the command below:
-   '''bash
+   ```bash
    pip install -r requirements.txt
    ```
 
