@@ -43,9 +43,8 @@ model = genai.GenerativeModel(
     generation_config=generation_config
 )
 
-
 def generate_personalized_description(product_name, category, user_id):
-    """Generare descriere personalizata in functie de comportamentul utilizatorului"""
+    """Generare descriere personalizată clară și de calitate, fără opțiuni multiple."""
     interactions = UserInteraction.query.filter_by(user_id=user_id).all()
     purchased_products = PurchaseHistory.query.filter_by(user_id=user_id).all()
     
@@ -55,14 +54,18 @@ def generate_personalized_description(product_name, category, user_id):
     try:
         chat_session = model.start_chat(history=[])
         prompt = (
-            f"Generate a personalized product description for '{product_name}' in the '{category}' category."
-            f" The user frequently views: {', '.join(viewed_categories)}."
-            f" The user has purchased products from: {', '.join(purchased_categories)}."
+            f"Generate a single, high-quality and ready-to-use product description for '{product_name}' "
+            f"in the '{category}' category. Do not list multiple options or placeholders. "
+            f"Ensure the description is concise yet descriptive, highlighting key benefits. "
+            f"The user frequently views: {', '.join(viewed_categories)}. "
+            f"The user has purchased products from: {', '.join(purchased_categories)}."
         )
         response = chat_session.send_message(prompt)
-        return response.text.strip()
+        final_description = response.text.strip().split("**Opțiune")[0].strip()
+        return final_description
     except Exception as e:
-        return "Descriere indisponibila."
+        return "Descriere indisponibilă."
+
     
     
 
