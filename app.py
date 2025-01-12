@@ -155,27 +155,38 @@ def login_required(f):
 @app.route("/popular_products")
 @login_required
 def popular_products():
-    # Cele mai vizualizate produse
+    # Cele mai vizualizate produse global
     most_viewed = Product.query.order_by(Product.views.desc()).limit(5).all()
     
-    # Cele mai achizitionate produse
+    # Cele mai achiziționate produse global
     most_purchased = Product.query.order_by(Product.purchases.desc()).limit(5).all()
     
-    # Produse cu cele mai multe interactiuni
+    # Produse cu cele mai multe interacțiuni (vizualizări + achiziții)
     most_interacted = (
         db.session.query(Product, db.func.sum(Product.views + Product.purchases).label("total_interactions"))
+        .group_by(Product.id)
         .order_by(db.func.sum(Product.views + Product.purchases).desc())
         .limit(5)
         .all()
     )
     
+    # Cele mai populare produse per categorie
+    popular_per_category = {}
+    for category in AVAILABLE_CATEGORIES:
+        popular_per_category[category] = (
+            Product.query.filter_by(category=category)
+            .order_by(Product.purchases.desc(), Product.views.desc())
+            .limit(5)
+            .all()
+        )
+    
     return render_template(
         "popular_products.html",
         most_viewed=most_viewed,
         most_purchased=most_purchased,
-        most_interacted=most_interacted
+        most_interacted=most_interacted,
+        popular_per_category=popular_per_category
     )
-
 @app.route("/")
 @login_required
 def home():
@@ -287,6 +298,10 @@ def view_product(product_id):
     product.views += 1
     db.session.commit()
 
+    start_time = datetime.now(timezone.utc)  
+    session['start_time'] = start_time.timestamp()  
+    
+    
     personalized_description = generate_personalized_description(product.name, product.category, session["user_id"])
     similar_products = get_content_based_recommendations(product)
 
@@ -309,7 +324,40 @@ def purchase_product(product_id):
     flash("Produs achiziționat!")
     return redirect(url_for("home"))
 
+
+
+@app.route("/track_time/<int:product_id>", methods=["POST"])
+def track_time(product_id):
+    end_time = datetime.utcnow()
+    start_time = datetime.fromtimestamp(session.get('start_time', end_time.timestamp()))
+    time_spent = (end_time - start_time).total_seconds()
+
+    interaction = UserInteraction(user_id=session["user_id"], product_id=product_id, time_spent=time_spent)
+    db.session.add(interaction)
+    db.session.commit()
     
+    return jsonify({"status": "success", "time_spent": time_spent})
+    
+
+
+@app.route("/user_reports")
+@login_required
+def user_reports():
+    if "role" not in session or session["role"] != "admin":
+        flash("Doar administratorii pot accesa această pagină!")
+        return redirect(url_for("home"))
+    
+    users = User.query.all()
+    user_reports = {}
+    for user in users:
+        interactions = UserInteraction.query.filter_by(user_id=user.id).all()
+        purchased_products = PurchaseHistory.query.filter_by(user_id=user.id).all()
+        
+        user_reports[user.username] = {
+            "interactions": interactions,
+            "purchased_products": purchased_products
+        }
+    return render_template("user_reports.html", user_reports=user_reports)
     
     
   

@@ -29,6 +29,8 @@ class UserInteraction(db.Model):
     user_id = db.Column(db.String(100))
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())    
+    time_spent = db.Column(db.Float, default=0.0)  # timp petrecut pe pagina in secunde
+
     
 
 class User(db.Model):

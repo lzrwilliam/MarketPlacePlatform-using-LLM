@@ -11,31 +11,50 @@
 <div class="container mt-5">
     <h1 class="text-center mb-4">Rapoarte de Utilizare</h1>
     
-    <!-- Cele mai vizualizate produse -->
-    <h3>Cele mai vizualizate produse</h3>
-    <ul>
+    <!-- Cele mai vizualizate produse global -->
+    <h3 class="mt-4">Cele mai vizualizate produse (Global)</h3>
+    <ul class="list-group">
         {% for product in most_viewed %}
-            <li>{{ product.name }} - {{ product.views }} vizualizări</li>
+            <li class="list-group-item">
+                {{ product.name }} - {{ product.views }} vizualizări
+            </li>
         {% endfor %}
     </ul>
 
-    <!-- Cele mai achiziționate produse -->
-    <h3>Cele mai achiziționate produse</h3>
-    <ul>
+    <!-- Cele mai achiziționate produse global -->
+    <h3 class="mt-4">Cele mai achiziționate produse (Global)</h3>
+    <ul class="list-group">
         {% for product in most_purchased %}
-            <li>{{ product.name }} - {{ product.purchases }} achiziții</li>
+            <li class="list-group-item">
+                {{ product.name }} - {{ product.purchases }} achiziții
+            </li>
         {% endfor %}
     </ul>
 
     <!-- Produse cu cele mai multe interacțiuni -->
-    <h3>Produse cu cele mai multe interacțiuni</h3>
-    <ul>
+    <h3 class="mt-4">Produse cu cele mai multe interacțiuni</h3>
+    <ul class="list-group">
         {% for product, total_interactions in most_interacted %}
-            <li>{{ product.name }} - {{ total_interactions }} interacțiuni totale</li>
+            <li class="list-group-item">
+                {{ product.name }} - {{ total_interactions }} interacțiuni totale
+            </li>
         {% endfor %}
     </ul>
 
-    <a href="/" class="btn btn-primary mt-3">Înapoi la Acasă</a>
+    <!-- Cele mai populare produse pe fiecare categorie -->
+    <h3 class="mt-4">Cele mai populare produse per Categorie</h3>
+    {% for category, products in popular_per_category.items() %}
+        <h5 class="mt-3">{{ category }}</h5>
+        <ul class="list-group">
+            {% for product in products %}
+                <li class="list-group-item">
+                    {{ product.name }} - {{ product.purchases }} achiziții, {{ product.views }} vizualizări
+                </li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+
+    <a href="/" class="btn btn-primary mt-5">Înapoi la Acasă</a>
 </div>
 
 </body>
