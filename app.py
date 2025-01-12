@@ -59,6 +59,7 @@ def generate_personalized_description(product_name, category, user_id):
             f"Ensure the description is concise yet descriptive, highlighting key benefits. "
             f"The user frequently views: {', '.join(viewed_categories)}. "
             f"The user has purchased products from: {', '.join(purchased_categories)}."
+            f"The output must be in romanian."
         )
         response = chat_session.send_message(prompt)
         final_description = response.text.strip().split("**Opțiune")[0].strip()
@@ -100,7 +101,7 @@ def get_recommended_products(user_id):
     if len(produse_recomandate) < 5:
         produse_populare = Product.query.order_by(Product.purchases.desc(), Product.views.desc()).limit(5).all()
         produse_recomandate.extend(produse_populare)
-        produse_recomandate = list(set(produse_recomandate))  # Evită duplicarea produselor
+        produse_recomandate = list(set(produse_recomandate))  # Evita duplicarea produselor
 
     return produse_recomandate
     
@@ -118,7 +119,8 @@ def get_content_based_recommendations(product):
             current_vector = [float(x) for x in response.text.strip().split(",")]
         except ValueError:
             print("Invalid vector response, using name and category fallback:", response.text)
-            # Dacă vectorul nu poate fi creat, fallback pe nume și categorie
+            
+            # Daca vectorul nu poate fi creat, fallback pe nume si categorie
             return Product.query.filter(
                 Product.category == product.category, Product.id != product.id
             ).order_by(Product.views.desc()).limit(5).all()
@@ -132,10 +134,10 @@ def get_content_based_recommendations(product):
                 product_vector = [float(x) for x in response.text.strip().split(",")]
                 similarity_score = sum(a * b for a, b in zip(current_vector, product_vector))
                 
-                # ✅ Calculăm și similaritatea pe baza numelui (similaritatea cosinus)
+                
                 name_similarity = 1.0 if product.name.lower() in prod.name.lower() else 0.5
                 
-                # ✅ Formula hibridă: 70% descriere, 30% nume similar
+                #  Formula hibrida: 70% descriere, 30% nume similar
                 final_score = (similarity_score * 0.7) + (name_similarity * 0.3)
                 
                 similar_products.append((prod, final_score))
@@ -143,7 +145,7 @@ def get_content_based_recommendations(product):
                 print(f"Eroare la conversia vectorului pentru produsul: {prod.name}")
                 continue  
 
-        # ✅ Sortare după scorul combinat
+        #  Sortare dupa scorul combinat
         if similar_products:
             similar_products = sorted(similar_products, key=lambda x: x[1], reverse=True)[:5]
             return [prod[0] for prod in similar_products]
@@ -154,7 +156,7 @@ def get_content_based_recommendations(product):
             ).limit(5).all()
     
     except Exception as e:
-        print(f"Eroare în generarea recomandărilor bazate pe conținut: {str(e)}")
+        print(f"Eroare in generarea recomandărilor bazate pe continut: {str(e)}")
         return Product.query.filter(
             Product.category == product.category, Product.id != product.id
         ).limit(5).all()
@@ -164,7 +166,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
-            flash("Trebuie să fii autentificat pentru a accesa această pagină.")
+            flash("Trebuie sa fii autentificat pentru a accesa aceasta pagina.")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
@@ -176,10 +178,10 @@ def popular_products():
     # Cele mai vizualizate produse global
     most_viewed = Product.query.order_by(Product.views.desc()).limit(5).all()
     
-    # Cele mai achiziționate produse global
+    # Cele mai achizitionate produse global
     most_purchased = Product.query.order_by(Product.purchases.desc()).limit(5).all()
     
-    # Produse cu cele mai multe interacțiuni (vizualizări + achiziții)
+    # Produse cu cele mai multe interactiuni (vizualizari + achizitii)
     most_interacted = (
         db.session.query(Product, db.func.sum(Product.views + Product.purchases).label("total_interactions"))
         .group_by(Product.id)
@@ -260,7 +262,9 @@ def suggest_category():
 
     try:
         chat_session = model.start_chat(history=[])
-        prompt = f"Suggest the most relevant product category for the product: '{name}'. Choose from these categories: {', '.join(AVAILABLE_CATEGORIES)}"
+        prompt = (f"Suggest the most relevant product category for the product: '{name}'. Choose from these categories: {', '.join(AVAILABLE_CATEGORIES)}"
+                f"The output must be in romanian.")
+   
         response = chat_session.send_message(prompt)
         suggested_category = response.text.strip()
         return jsonify({"suggested_category": suggested_category})
@@ -274,11 +278,13 @@ def generate_description():
     category = request.form.get('category')
 
     if not name or not category:
-        return jsonify({"error": "Numele și categoria sunt necesare!"})
+        return jsonify({"error": "Numele si categoria sunt necesare!"})
 
     try:
         chat_session = model.start_chat(history=[])
-        prompt = f"Generate a professional and creative product description for the product '{name}' in the '{category}' category. Highlight its unique features and benefits."
+        prompt = (f"Generate a professional and creative product description for the product '{name}' in the '{category}' category. Highlight its unique features and benefits."
+                f"The output must be in romanian."
+)
         response = chat_session.send_message(prompt)
         description = response.text.strip()
         return jsonify({"description": description})
@@ -290,7 +296,7 @@ def generate_description():
 @app.route("/add", methods=["GET", "POST"])
 def add_product():
     if "role" not in session or session["role"] != "admin":
-        flash("Doar administratorii pot adăuga produse!")
+        flash("Doar administratorii pot adauga produse!")
         return redirect(url_for("login"))
 
     if request.method == "POST":
@@ -375,7 +381,7 @@ def track_time(product_id):
 @login_required
 def user_reports():
     if "role" not in session or session["role"] != "admin":
-        flash("Doar administratorii pot accesa această pagină!")
+        flash("Doar administratorii pot accesa aceasta pagina!")
         return redirect(url_for("home"))
     
     users = User.query.all()
