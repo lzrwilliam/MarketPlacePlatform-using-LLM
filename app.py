@@ -319,6 +319,10 @@ def view_product(product_id):
     start_time = datetime.now(timezone.utc)  
     session['start_time'] = start_time.timestamp()  
     
+    has_purchased = PurchaseHistory.query.filter_by(user_id=session["user_id"], product_id=product_id).first() is not None
+
+    already_reviewed = Review.query.filter_by(user_id=session["user_id"], product_id=product_id).first() is not None
+
     
     personalized_description = generate_personalized_description(product.name, product.category, session["user_id"])
     similar_products = get_content_based_recommendations(product)
@@ -327,7 +331,8 @@ def view_product(product_id):
     db.session.add(new_interaction)
     db.session.commit()
 
-    return render_template("view_product.html", product=product, personalized_description=personalized_description, similar_products=similar_products)
+    return render_template("view_product.html", product=product, personalized_description=personalized_description, similar_products=similar_products, has_purchased=has_purchased, already_reviewed=already_reviewed)
+
 
 @app.route("/purchase/<int:product_id>")
 def purchase_product(product_id):

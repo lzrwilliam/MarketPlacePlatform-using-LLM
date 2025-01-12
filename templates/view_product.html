@@ -47,9 +47,7 @@
         {% for review in product.reviews %}
         <div class="card mb-3 border-0 shadow-sm">
             <div class="card-body">
-                <p>
-                    <strong>⭐ Rating: {{ review.rating }} / 5</strong>
-                </p>
+                <p><strong>⭐ Rating: {{ review.rating }} / 5</strong></p>
                 <p><em>{{ review.content }}</em></p>
                 <small class="text-muted">Review de: {{ review.user.username }} la {{ review.created_at.strftime('%d %B %Y') }}</small>
             </div>
@@ -60,24 +58,26 @@
     {% endif %}
 </div>
 
-<!-- Adăugare Review -->
+<!-- Adăugare Review - Doar dacă a cumpărat produsul și nu a lăsat deja review -->
+{% if has_purchased and not already_reviewed %}
 <div class="container mt-5 p-4 bg-white shadow-sm rounded">
     <h2 class="text-center mb-4">Adaugă un Review</h2>
     <form method="POST" action="{{ url_for('add_review', product_id=product.id) }}">
         
+        <!-- Steluțe pentru rating -->
         <div class="mb-3 text-center">
             <label for="rating"><strong>Alege un rating:</strong></label>
             <div class="rating-stars" id="rating-stars">
-                <input type="radio" name="rating" value="5" id="star5">
-                <label for="star5" onclick="setRating(5)">&#9733;</label>
-                <input type="radio" name="rating" value="4" id="star4">
-                <label for="star4" onclick="setRating(4)">&#9733;</label>
-                <input type="radio" name="rating" value="3" id="star3">
-                <label for="star3" onclick="setRating(3)">&#9733;</label>
+                <input type="radio" name="rating" value="1" id="star1" required>
+                <label for="star1" onclick="setRating(1)">&#9733;</label>
                 <input type="radio" name="rating" value="2" id="star2">
                 <label for="star2" onclick="setRating(2)">&#9733;</label>
-                <input type="radio" name="rating" value="1" id="star1">
-                <label for="star1" onclick="setRating(1)">&#9733;</label>
+                <input type="radio" name="rating" value="3" id="star3">
+                <label for="star3" onclick="setRating(3)">&#9733;</label>
+                <input type="radio" name="rating" value="4" id="star4">
+                <label for="star4" onclick="setRating(4)">&#9733;</label>
+                <input type="radio" name="rating" value="5" id="star5">
+                <label for="star5" onclick="setRating(5)">&#9733;</label>
             </div>
         </div>
 
@@ -102,101 +102,80 @@
         </div>
     </form>
 </div>
+{% elif not has_purchased %}
+<div class="container mt-5 p-4 bg-white shadow-sm rounded text-center">
+    <p class="text-danger"><strong>❌ Nu poți lăsa un review fără să fi cumpărat produsul.</strong></p>
+</div>
+{% elif already_reviewed %}
+<div class="container mt-5 p-4 bg-white shadow-sm rounded text-center">
+    <p class="text-warning"><strong>⚠️ Ai lăsat deja un review pentru acest produs.</strong></p>
+</div>
+{% endif %}
+
+<!-- Stilizare pentru Rating cu Steluțe -->
 <style>
-    .rating-stars {
-        direction: ltr;
-        display: flex;
-        justify-content: center;
-        font-size: 2.5rem;
-        gap: 10px;
-    }
-    
-    .rating-stars input {
-        display: none; 
-    }
-    
-    .rating-stars label {
-        cursor: pointer;
-        color: #ccc; /* Gri implicit */
-        transition: color 0.3s ease;
-    }
-    
-    /* Hover - doar la hover */
-    .rating-stars label:hover,
-    .rating-stars label:hover ~ label {
-        color: gold;
-    }
-    
-    /* Selectat - doar când se alege ratingul */
-    .rating-stars input:checked + label,
-    .rating-stars input:checked + label ~ label {
-        color: gold;
-    }
-    </style>
+.rating-stars {
+    direction: ltr;
+    display: flex;
+    justify-content: center;
+    font-size: 2.5rem;
+    gap: 10px;
+}
+
+.rating-stars input {
+    display: none;
+}
+
+.rating-stars label {
+    cursor: pointer;
+    color: #ccc;
+    transition: color 0.3s ease;
+}
+
+/* Culoare gri implicită */
+.rating-stars label:hover,
+.rating-stars label:hover ~ label {
+    color: gold;
+}
+
+/* Selectat corect de la stânga la dreapta */
+.rating-stars input:checked + label,
+.rating-stars input:checked + label ~ label {
+    color: gold;
+}
+</style>
+
+<!-- Script pentru Funcționalitate Steluțe și Generare LLM -->
 <script>
-    async function generateReview() {
-        const keywords = document.getElementById('keywords').value;
-        const rating = document.querySelector('input[name="rating"]:checked')?.value;
-
-        if (!rating) {
-            alert("Selectează un rating înainte de a genera review-ul!");
-            return;
-        }
-
-        try {
-            const response = await fetch("{{ url_for('generate_review', product_id=product.id) }}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ rating: rating, keywords: keywords })
-            });
-
-            const data = await response.json();
-            if (data.generated_review) {
-                document.getElementById('content').value = data.generated_review;
-            } else {
-                alert("A apărut o eroare la generarea review-ului.");
-            }
-        } catch (error) {
-            alert("Eroare la generarea review-ului.");
-            console.error(error);
-        }
-    }
-
-    function setRating(rating) {
+function setRating(rating) {
     const stars = document.querySelectorAll('.rating-stars label');
     stars.forEach((star, index) => {
-        if (index < rating) {
-            star.style.color = 'gold';
-        } else {
-            star.style.color = '#ccc';
-        }
+        star.style.color = index < rating ? 'gold' : '#ccc';
     });
     document.getElementById('star' + rating).checked = true;
 }
-</script>
 
-<!-- Script pentru Monitorizarea Timpului Petrecut pe Pagină -->
-<script>
-    var startTime = new Date().getTime();
+async function generateReview() {
+    const rating = document.querySelector('input[name="rating"]:checked')?.value;
+    const keywords = document.getElementById('keywords').value;
 
-    window.addEventListener('beforeunload', async function() {
-        var endTime = new Date().getTime();
-        var timeSpent = (endTime - startTime) / 1000;
+    if (!rating) {
+        alert("Selectează un rating înainte de a genera un review!");
+        return;
+    }
 
-        try {
-            await fetch('/track_time/{{ product.id }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ "time_spent": timeSpent })
-            });
-        } catch (error) {
-            console.error('Eroare la trimiterea datelor de timp:', error);
-        }
+    const response = await fetch("{{ url_for('generate_review', product_id=product.id) }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: rating, keywords: keywords })
     });
+
+    const data = await response.json();
+    if (data.generated_review) {
+        document.getElementById('content').value = data.generated_review;
+    } else {
+        alert("A apărut o eroare la generarea review-ului.");
+    }
+}
 </script>
 {% endblock %}
-</body>
