@@ -15,6 +15,7 @@
         <div class="ml-auto">
             {% if user_role %}
                 <a href="{{ url_for('logout') }}" class="btn btn-warning">Logout</a>
+                <a href="{{ url_for('popular_products') }}" class="btn btn-info mb-3">Vizualizeaza Rapoarte</a>
             {% else %}
                 <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
                 <a href="{{ url_for('register') }}" class="btn btn-success">Register</a>

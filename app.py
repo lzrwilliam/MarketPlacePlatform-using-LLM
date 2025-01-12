@@ -43,24 +43,28 @@ model = genai.GenerativeModel(
     generation_config=generation_config
 )
 
-
 def generate_personalized_description(product_name, category, user_id):
+    """Generare descriere personalizata in functie de comportamentul utilizatorului"""
     interactions = UserInteraction.query.filter_by(user_id=user_id).all()
+    purchased_products = PurchaseHistory.query.filter_by(user_id=user_id).all()
+    
     viewed_categories = [Product.query.get(i.product_id).category for i in interactions]
+    purchased_categories = [Product.query.get(i.product_id).category for i in purchased_products]
 
     try:
         chat_session = model.start_chat(history=[])
-        prompt = f"Generate a personalized product description for '{product_name}' in the '{category}' category."
-
-        if viewed_categories:
-            prompt += f" The user has interacted with these categories before: {', '.join(viewed_categories)}."
-
+        prompt = (
+            f"Generate a personalized product description for '{product_name}' in the '{category}' category."
+            f" The user frequently views: {', '.join(viewed_categories)}."
+            f" The user has purchased products from: {', '.join(purchased_categories)}."
+        )
         response = chat_session.send_message(prompt)
         return response.text.strip()
     except Exception as e:
         return "Descriere indisponibilă."
 
 def get_recommended_products(user_id):
+    """Recomandări hibride pe baza vizualizărilor, achizițiilor și popularității"""
     viewed = UserInteraction.query.filter_by(user_id=user_id).order_by(UserInteraction.id.desc()).limit(10).all()
     purchased = PurchaseHistory.query.filter_by(user_id=user_id).limit(5).all()
     
@@ -71,7 +75,7 @@ def get_recommended_products(user_id):
 
     produse_recomandate = (
         Product.query.filter(Product.category.in_(all_categories))
-        .order_by(Product.views.desc(), Product.purchases.desc())
+        .order_by(Product.purchases.desc(), Product.views.desc())
         .limit(5)
         .all()
     )
@@ -85,6 +89,31 @@ def login_required(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
+
+
+@app.route("/popular_products")
+@login_required
+def popular_products():
+    # Cele mai vizualizate produse
+    most_viewed = Product.query.order_by(Product.views.desc()).limit(5).all()
+    
+    # Cele mai achizitionate produse
+    most_purchased = Product.query.order_by(Product.purchases.desc()).limit(5).all()
+    
+    # Produse cu cele mai multe interactiuni
+    most_interacted = (
+        db.session.query(Product, db.func.sum(Product.views + Product.purchases).label("total_interactions"))
+        .order_by(db.func.sum(Product.views + Product.purchases).desc())
+        .limit(5)
+        .all()
+    )
+    
+    return render_template(
+        "popular_products.html",
+        most_viewed=most_viewed,
+        most_purchased=most_purchased,
+        most_interacted=most_interacted
+    )
 
 @app.route("/")
 @login_required
@@ -133,7 +162,6 @@ def login():
         flash("Date de autentificare incorecte!")
     return render_template("login.html")
 
-# ✅ Logout utilizator
 @app.route("/logout")
 def logout():
     session.clear()
