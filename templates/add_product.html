@@ -9,7 +9,11 @@
 </head>
 <body class="bg-light">
 
-<div class="container mt-5">
+{% extends 'base.html' %}
+
+{% block title %}Adăugare Produs{% endblock %}
+{% block content %}
+    <div class="container mt-5">
     <h1 class="text-center mb-4">Adaugă un Produs Nou</h1>
     
     <form method="POST" class="p-4 bg-white shadow rounded" id="productForm">
@@ -49,6 +53,7 @@
         <a href="/" class="btn btn-secondary w-100 mt-3">Înapoi la Produse</a>
     </form>
 </div>
+{% endblock %}
 
 <script>
     // ✅ Generare categorie sugerată
