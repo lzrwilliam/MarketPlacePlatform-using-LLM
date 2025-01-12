@@ -8,54 +8,66 @@
 </head>
 <body class="bg-light">
 
+{% extends 'base.html' %}
+{% block title %}Rapoarte de Utilizare{% endblock %}
+
+{% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4">Rapoarte de Utilizare</h1>
+    <h1 class="text-center mb-5">📊 Top produse</h1>
     
     <!-- Cele mai vizualizate produse global -->
-    <h3 class="mt-4">Cele mai vizualizate produse (Global)</h3>
-    <ul class="list-group">
+    <h3 class="mt-5 text-primary">🌟 Cele mai vizualizate produse (Global)</h3>
+    <ul class="list-group list-group-flush">
         {% for product in most_viewed %}
-            <li class="list-group-item">
-                {{ product.name }} - {{ product.views }} vizualizări
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ product.name }} 
+                <span class="badge bg-secondary rounded-pill">{{ product.views }} vizualizări</span>
             </li>
         {% endfor %}
     </ul>
 
     <!-- Cele mai achiziționate produse global -->
-    <h3 class="mt-4">Cele mai achiziționate produse (Global)</h3>
-    <ul class="list-group">
+    <h3 class="mt-5 text-success">🛒 Cele mai achiziționate produse (Global)</h3>
+    <ul class="list-group list-group-flush">
         {% for product in most_purchased %}
-            <li class="list-group-item">
-                {{ product.name }} - {{ product.purchases }} achiziții
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ product.name }}
+                <span class="badge bg-success rounded-pill">{{ product.purchases }} achiziții</span>
             </li>
         {% endfor %}
     </ul>
 
     <!-- Produse cu cele mai multe interacțiuni -->
-    <h3 class="mt-4">Produse cu cele mai multe interacțiuni</h3>
-    <ul class="list-group">
+    <h3 class="mt-5 text-info">🔥 Produse cu cele mai multe interacțiuni</h3>
+    <ul class="list-group list-group-flush">
         {% for product, total_interactions in most_interacted %}
-            <li class="list-group-item">
-                {{ product.name }} - {{ total_interactions }} interacțiuni totale
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ product.name }}
+                <span class="badge bg-info rounded-pill">{{ total_interactions }} interacțiuni totale</span>
             </li>
         {% endfor %}
     </ul>
 
-    <!-- Cele mai populare produse pe fiecare categorie -->
-    <h3 class="mt-4">Cele mai populare produse per Categorie</h3>
+    <!-- Cele mai populare produse per Categorie -->
+    <h3 class="mt-5 text-warning">🏆 Cele mai populare produse per Categorie</h3>
     {% for category, products in popular_per_category.items() %}
-        <h5 class="mt-3">{{ category }}</h5>
-        <ul class="list-group">
+        <h5 class="mt-4">📌 {{ category }}</h5>
+        <ul class="list-group list-group-flush">
             {% for product in products %}
-                <li class="list-group-item">
-                    {{ product.name }} - {{ product.purchases }} achiziții, {{ product.views }} vizualizări
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ product.name }}
+                    <span class="badge bg-warning rounded-pill">{{ product.purchases }} achiziții | {{ product.views }} vizualizări</span>
                 </li>
             {% endfor %}
         </ul>
     {% endfor %}
 
-    <a href="/" class="btn btn-primary mt-5">Înapoi la Acasă</a>
+    <div class="text-center mt-5">
+        <a href="/" class="btn btn-primary">🏠 Înapoi la Acasă</a>
+    </div>
 </div>
+
+{% endblock %}
 
 </body>
 </html>
