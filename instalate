@@ -1,0 +1,3 @@
+pip install flask openai sqlalchemy
+pip freeze > requirements.txt -- fisier care contine tot ce avem nevoie sa ruleze proiectu
+pip install google-genai
