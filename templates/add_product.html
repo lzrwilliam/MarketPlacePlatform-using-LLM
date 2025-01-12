@@ -3,7 +3,7 @@
 {% block title %}Adăugare Produs{% endblock %}
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4">Adaugă un Produs Nou</h1>
+    <h1 class="text-center mb-4">Adauga un Produs Nou</h1>
     
     <form method="POST" action="{{ url_for('add_product') }}" class="p-4 bg-white shadow rounded" id="productForm">
         <!-- Nume Produs -->
@@ -13,8 +13,8 @@
         </div>
         
         <!-- Buton pentru generarea categoriei -->
-        <button type="button" class="btn btn-warning mb-3" id="suggestCategoryBtn">Sugerează Categoria</button>
-        <p><strong>Categorie Recomandată:</strong> <span id="suggestedCategory">Nicio categorie sugerată</span></p>
+        <button type="button" class="btn btn-warning mb-3" id="suggestCategoryBtn">Sugereaza Categoria</button>
+        <p><strong>Categorie Recomandată:</strong> <span id="suggestedCategory">Nicio categorie sugerata</span></p>
         
         <!-- Dropdown Categorie -->
         <div class="mb-3">
@@ -35,31 +35,30 @@
         <!-- Buton pentru generarea descrierii -->
         <button type="button" class="btn btn-secondary mb-3" id="generateBtn">Generează Descriere</button>
 
-        <!-- Descrierea Generată -->
+        <!-- Descrierea Generata -->
         <div class="mb-3">
-            <label for="description" class="form-label">Descriere Generată:</label>
+            <label for="description" class="form-label">Descriere Sugerata:</label>
             <textarea class="form-control" id="description" name="description" rows="4" readonly></textarea>
         </div>
         
-        <!-- Buton de Adăugare Produs -->
-        <button type="submit" class="btn btn-primary w-100">Adaugă Produs</button>
-        <a href="/" class="btn btn-secondary w-100 mt-3">Înapoi la Produse</a>
+        <!-- Buton de Adaugare Produs -->
+        <button type="submit" class="btn btn-primary w-100">Adauga Produs</button>
+        <a href="/" class="btn btn-secondary w-100 mt-3">Inapoi la Produse</a>
     </form>
 </div>
 {% endblock %}
 
-<!-- ✅ Blocul de scripturi mutat în blocul corect -->
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        console.log("✅ JavaScript încărcat complet!");
+        console.log(" JavaScript incarcat complet!");
 
         document.getElementById('suggestCategoryBtn').addEventListener('click', async function () {
             const name = document.getElementById('name').value.trim();
-            console.log("Sugestie categorie apăsată!", name);
+            console.log("Sugestie categorie apasata!", name);
 
             if (!name) {
-                alert("Introduceți numele produsului înainte de a sugera categoria!");
+                alert("Introduceti numele produsului inainte de a sugera categoria!");
                 return;
             }
 
@@ -72,7 +71,7 @@
                     body: new URLSearchParams({name: name})
                 });
                 const data = await response.json();
-                console.log("Răspuns server:", data);
+                console.log("Raspuns server:", data);
                 if (data.suggested_category) {
                     document.getElementById('suggestedCategory').textContent = data.suggested_category;
                     document.getElementById('category').value = data.suggested_category;
@@ -90,7 +89,7 @@
             console.log("Generare descriere apăsată!", name, category);
 
             if (!name || !category) {
-                alert("Completați numele și categoria înainte de a genera descrierea!");
+                alert("Completati numele si categoria inainte de a genera descrierea!");
                 return;
             }
 
@@ -103,7 +102,7 @@
                     body: new URLSearchParams({name: name, category: category})
                 });
                 const data = await response.json();
-                console.log("Răspuns server pentru descriere:", data);
+                console.log("Raspuns server pentru descriere:", data);
                 if (data.description) {
                     document.getElementById('description').value = data.description;
                 } else {

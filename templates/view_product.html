@@ -2,20 +2,20 @@
 {% block title %}Detalii Produs{% endblock %}
 
 {% block content %}
-<!-- Secțiune principală pentru produs -->
+<!-- Sectiune principala  produs -->
 <div class="container mt-5 p-4 bg-white shadow-sm rounded">
     <h1 class="text-center mb-4">{{ product.name }}</h1>
     <div class="row justify-content-center">
         <div class="col-md-8">
             <ul class="list-group list-group-flush">
                 <li class="list-group-item"><strong>Categorie:</strong> {{ product.category }}</li>
-                <li class="list-group-item"><strong>Preț:</strong> <span class="text-success fs-4">{{ product.price }} RON</span></li>
+                <li class="list-group-item"><strong>Pret:</strong> <span class="text-success fs-4">{{ product.price }} RON</span></li>
                 <li class="list-group-item"><strong>Descriere:</strong> {{ product.description }}</li>
                 <li class="list-group-item"><strong>Descriere Personalizată:</strong> {{ personalized_description }}</li>
             </ul>
             <div class="text-center mt-4">
                 <a href="{{ url_for('purchase_product', product_id=product.id) }}" class="btn btn-success btn-lg">
-                    🛒 Cumpără Acum
+                    🛒 Cumpara Acum
                 </a>
             </div>
         </div>
@@ -40,7 +40,7 @@
     </div>
 </div>
 
-<!-- Secțiune Recenzii -->
+<!-- Recenzii -->
 <div class="container mt-5 p-4 bg-white shadow-sm rounded">
     <h2 class="text-center mb-4">Recenzii Utilizatori</h2>
     {% if product.reviews %}
@@ -54,17 +54,17 @@
         </div>
         {% endfor %}
     {% else %}
-        <p>Momentan nu există review-uri pentru acest produs.</p>
+        <p>Momentan nu exista review-uri pentru acest produs.</p>
     {% endif %}
 </div>
 
-<!-- Adăugare Review - Doar dacă a cumpărat produsul și nu a lăsat deja review -->
+<!-- Adaugare Review - Doar daca a cumparat produsul si nu a lasat deja review -->
 {% if has_purchased and not already_reviewed %}
 <div class="container mt-5 p-4 bg-white shadow-sm rounded">
     <h2 class="text-center mb-4">Adaugă un Review</h2>
     <form method="POST" action="{{ url_for('add_review', product_id=product.id) }}">
         
-        <!-- Steluțe pentru rating -->
+        <!-- Stelute rating -->
         <div class="mb-3 text-center">
             <label for="rating"><strong>Alege un rating:</strong></label>
             <div class="rating-stars" id="rating-stars">
@@ -83,36 +83,36 @@
 
         <!-- Cuvinte Cheie pentru Generarea Review-ului -->
         <div class="mb-3">
-            <label for="keywords" class="form-label">Cuvinte cheie pentru LLM (opțional)</label>
-            <input type="text" class="form-control" name="keywords" id="keywords" placeholder="Ex: durabil, design modern, calitate superioară">
+            <label for="keywords" class="form-label">Cuvinte cheie pentru a genera o descriere folosind LLM (opțional)</label>
+            <input type="text" class="form-control" name="keywords" id="keywords" placeholder="Ex: durabil, design modern, calitate superioara">
         </div>
 
         <!-- Generare Review Automat cu LLM -->
-        <button type="button" class="btn btn-info mb-3" onclick="generateReview()">🎯 Generează Review Automat</button>
+        <button type="button" class="btn btn-info mb-3" onclick="generateReview()">🎯 Genereaza Review Automat</button>
 
         <!-- Textarea pentru Review -->
         <div class="mb-3">
-            <label for="content" class="form-label">Scrie Review-ul Tău</label>
+            <label for="content" class="form-label">Scrie Review-ul Tau</label>
             <textarea class="form-control" name="content" id="content" rows="3" required></textarea>
         </div>
 
-        <!-- Buton de Adăugare Review -->
+        <!-- Buton de Adaugare Review -->
         <div class="text-center">
-            <button type="submit" class="btn btn-primary">✅ Adaugă Review</button>
+            <button type="submit" class="btn btn-primary">✅ Adauga Review</button>
         </div>
     </form>
 </div>
 {% elif not has_purchased %}
 <div class="container mt-5 p-4 bg-white shadow-sm rounded text-center">
-    <p class="text-danger"><strong>❌ Nu poți lăsa un review fără să fi cumpărat produsul.</strong></p>
+    <p class="text-danger"><strong>❌ Nu poti lasa un review fara sa fi cumparat produsul.</strong></p>
 </div>
 {% elif already_reviewed %}
 <div class="container mt-5 p-4 bg-white shadow-sm rounded text-center">
-    <p class="text-warning"><strong>⚠️ Ai lăsat deja un review pentru acest produs.</strong></p>
+    <p class="text-warning"><strong>⚠️ Ai lasat deja un review pentru acest produs.</strong></p>
 </div>
 {% endif %}
 
-<!-- Stilizare pentru Rating cu Steluțe -->
+
 <style>
 .rating-stars {
     direction: ltr;
@@ -132,20 +132,17 @@
     transition: color 0.3s ease;
 }
 
-/* Culoare gri implicită */
 .rating-stars label:hover,
 .rating-stars label:hover ~ label {
     color: gold;
 }
 
-/* Selectat corect de la stânga la dreapta */
 .rating-stars input:checked + label,
 .rating-stars input:checked + label ~ label {
     color: gold;
 }
 </style>
 
-<!-- Script pentru Funcționalitate Steluțe și Generare LLM -->
 <script>
 function setRating(rating) {
     const stars = document.querySelectorAll('.rating-stars label');
@@ -174,7 +171,7 @@ async function generateReview() {
     if (data.generated_review) {
         document.getElementById('content').value = data.generated_review;
     } else {
-        alert("A apărut o eroare la generarea review-ului.");
+        alert("A aparut o eroare la generarea review-ului.");
     }
 }
 </script>

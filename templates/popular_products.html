@@ -15,7 +15,6 @@
 <div class="container mt-5">
     <h1 class="text-center mb-5">📊 Top produse</h1>
     
-    <!-- Cele mai vizualizate produse global -->
     <h3 class="mt-5 text-primary">🌟 Cele mai vizualizate produse (Global)</h3>
     <ul class="list-group list-group-flush">
         {% for product in most_viewed %}
@@ -26,8 +25,7 @@
         {% endfor %}
     </ul>
 
-    <!-- Cele mai achiziționate produse global -->
-    <h3 class="mt-5 text-success">🛒 Cele mai achiziționate produse (Global)</h3>
+    <h3 class="mt-5 text-success">🛒 Cele mai achizitionate produse </h3>
     <ul class="list-group list-group-flush">
         {% for product in most_purchased %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -37,8 +35,7 @@
         {% endfor %}
     </ul>
 
-    <!-- Produse cu cele mai multe interacțiuni -->
-    <h3 class="mt-5 text-info">🔥 Produse cu cele mai multe interacțiuni</h3>
+    <h3 class="mt-5 text-info">🔥 Produse cu cele mai multe interactiuni</h3>
     <ul class="list-group list-group-flush">
         {% for product, total_interactions in most_interacted %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -48,7 +45,6 @@
         {% endfor %}
     </ul>
 
-    <!-- Cele mai populare produse per Categorie -->
     <h3 class="mt-5 text-warning">🏆 Cele mai populare produse per Categorie</h3>
     {% for category, products in popular_per_category.items() %}
         <h5 class="mt-4">📌 {{ category }}</h5>
@@ -63,7 +59,7 @@
     {% endfor %}
 
     <div class="text-center mt-5">
-        <a href="/" class="btn btn-primary">🏠 Înapoi la Acasă</a>
+        <a href="/" class="btn btn-primary">🏠 Inapoi la Produse</a>
     </div>
 </div>
 
