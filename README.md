@@ -40,7 +40,7 @@ This is a web-based e-commerce platform built using Flask and SQLAlchemy, with i
    ```
 3. Set up the database:
    ```bash
-   python -c "from app import db; db.create_all()"
+   The database will be created automatically when you run the project
    ```
 4. Run the application:
    ```bash
