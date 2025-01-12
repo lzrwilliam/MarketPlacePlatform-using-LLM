@@ -343,16 +343,23 @@ def purchase_product(product_id):
 
 @app.route("/track_time/<int:product_id>", methods=["POST"])
 def track_time(product_id):
-    end_time = datetime.now(timezone.utc)
-    start_time = datetime.fromtimestamp(session.get('start_time', end_time.timestamp()))
-    time_spent = (end_time - start_time).total_seconds()
+    try:
+        data = request.get_json() 
+        time_spent = float(data.get('time_spent'))
 
-    interaction = UserInteraction(user_id=session["user_id"], product_id=product_id, time_spent=time_spent)
-    db.session.add(interaction)
-    db.session.commit()
+     
+        existing_interaction = UserInteraction.query.filter_by(user_id=session["user_id"], product_id=product_id).first()
+        if existing_interaction:
+            existing_interaction.time_spent += time_spent  
+        else:
+            interaction = UserInteraction(user_id=session["user_id"], product_id=product_id, time_spent=time_spent)
+            db.session.add(interaction)
+
+        db.session.commit()
+        return jsonify({"status": "success", "time_spent": time_spent})
     
-    return jsonify({"status": "success", "time_spent": time_spent})
-    
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 
 @app.route("/user_reports")
