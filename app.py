@@ -62,30 +62,45 @@ def generate_personalized_description(product_name, category, user_id):
         response = chat_session.send_message(prompt)
         return response.text.strip()
     except Exception as e:
-        return "Descriere indisponibilă."
+        return "Descriere indisponibila."
+    
+    
 
 def get_recommended_products(user_id):
     viewed = UserInteraction.query.filter_by(user_id=user_id).order_by(UserInteraction.id.desc()).limit(10).all()
     purchased = PurchaseHistory.query.filter_by(user_id=user_id).limit(5).all()
+
+    if not viewed and not purchased:
+        return Product.query.order_by(Product.purchases.desc(), Product.views.desc()).limit(5).all()
     
+   
     viewed_categories = [Product.query.get(i.product_id).category for i in viewed]
     purchased_categories = [Product.query.get(i.product_id).category for i in purchased]
 
     all_categories = list(set(viewed_categories + purchased_categories))
 
-    produse_recomandate = (
-        Product.query.filter(Product.category.in_(all_categories))
-        .order_by((Product.purchases * 0.7) + (Product.views * 0.3))
-        .limit(5)
-        .all()
-    )
+    produse_recomandate = []
+    for product in Product.query.filter(Product.category.in_(all_categories)).all():
+        interactions = UserInteraction.query.filter_by(user_id=user_id, product_id=product.id).all()
+        total_views = len(interactions)
+        total_time_spent = sum(i.time_spent for i in interactions)
 
+       
+        score = (product.purchases * 0.4) + (total_views * 0.3) + (total_time_spent * 0.3)
+        produse_recomandate.append((product, score))
+
+    # sortare dupa scor
+    produse_recomandate.sort(key=lambda x: x[1], reverse=True)
+    produse_recomandate = [p[0] for p in produse_recomandate[:5]]
+
+    #  daca nu avem suficient, completam cu produse populare
     if len(produse_recomandate) < 5:
         produse_populare = Product.query.order_by(Product.purchases.desc(), Product.views.desc()).limit(5).all()
         produse_recomandate.extend(produse_populare)
-        produse_recomandate = list(set(produse_recomandate))
+        produse_recomandate = list(set(produse_recomandate))  # Evită duplicarea produselor
 
     return produse_recomandate
+    
 
 
 def get_content_based_recommendations(product):
@@ -328,7 +343,7 @@ def purchase_product(product_id):
 
 @app.route("/track_time/<int:product_id>", methods=["POST"])
 def track_time(product_id):
-    end_time = datetime.utcnow()
+    end_time = datetime.now(timezone.utc)
     start_time = datetime.fromtimestamp(session.get('start_time', end_time.timestamp()))
     time_spent = (end_time - start_time).total_seconds()
 

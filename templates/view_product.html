@@ -33,5 +33,22 @@
     <a href="/" class="btn btn-secondary mt-4">Înapoi la Produse</a>
 </div>
 
+<script>
+    var startTime = new Date().getTime();
+
+    window.addEventListener('beforeunload', function() {
+        var endTime = new Date().getTime();
+        var timeSpent = (endTime - startTime) / 1000; 
+
+        fetch('/track_time/{{ product.id }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ time_spent: timeSpent })
+        });
+    });
+</script>
+
 </body>
 </html>
