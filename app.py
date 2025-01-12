@@ -252,7 +252,6 @@ def logout():
     session.clear()
     flash("Deconectare reușită!")
     return redirect(url_for("login"))
-
 @app.route("/suggest_category", methods=["POST"])
 def suggest_category():
     name = request.form.get('name')
@@ -267,6 +266,26 @@ def suggest_category():
         return jsonify({"suggested_category": suggested_category})
     except Exception as e:
         return jsonify({"error": str(e)})
+
+
+@app.route("/generate_description", methods=["POST"])
+def generate_description():
+    name = request.form.get('name')
+    category = request.form.get('category')
+
+    if not name or not category:
+        return jsonify({"error": "Numele și categoria sunt necesare!"})
+
+    try:
+        chat_session = model.start_chat(history=[])
+        prompt = f"Generate a professional and creative product description for the product '{name}' in the '{category}' category. Highlight its unique features and benefits."
+        response = chat_session.send_message(prompt)
+        description = response.text.strip()
+        return jsonify({"description": description})
+        
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 
 @app.route("/add", methods=["GET", "POST"])
 def add_product():
@@ -289,24 +308,6 @@ def add_product():
     return render_template("add_product.html", categories=AVAILABLE_CATEGORIES)
 
 
-@app.route("/generate_description", methods=["POST"])
-def generate_description():
-    name = request.form.get('name')
-    category = request.form.get('category')
-
-    if not name or not category:
-        return jsonify({"error": "Numele și categoria sunt necesare!"})
-
-    try:
-        chat_session = model.start_chat(history=[])
-        prompt = f"Generate a professional and creative product description for the product '{name}' in the '{category}' category. Highlight its unique features and benefits."
-
-        response = chat_session.send_message(prompt)
-        description = response.text.strip()
-        return jsonify({"description": description})
-        
-    except Exception as e:
-        return jsonify({"error": str(e)})
 
 
 

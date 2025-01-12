@@ -1,22 +1,12 @@
-<!DOCTYPE html>
-<html lang="ro">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adăugare Produs</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
-<body class="bg-light">
-
 {% extends 'base.html' %}
 
 {% block title %}Adăugare Produs{% endblock %}
 {% block content %}
-    <div class="container mt-5">
+<div class="container mt-5">
     <h1 class="text-center mb-4">Adaugă un Produs Nou</h1>
     
-    <form method="POST" class="p-4 bg-white shadow rounded" id="productForm">
+    <form method="POST" action="{{ url_for('add_product') }}" class="p-4 bg-white shadow rounded" id="productForm">
+        <!-- Nume Produs -->
         <div class="mb-3">
             <label for="name" class="form-label">Nume Produs:</label>
             <input type="text" class="form-control" id="name" name="name" required>
@@ -24,8 +14,9 @@
         
         <!-- Buton pentru generarea categoriei -->
         <button type="button" class="btn btn-warning mb-3" id="suggestCategoryBtn">Sugerează Categoria</button>
-        <p><strong>Categorie Recomandată:</strong> <span id="suggestedCategory"></span></p>
+        <p><strong>Categorie Recomandată:</strong> <span id="suggestedCategory">Nicio categorie sugerată</span></p>
         
+        <!-- Dropdown Categorie -->
         <div class="mb-3">
             <label for="category" class="form-label">Categorie:</label>
             <select class="form-control" id="category" name="category" required>
@@ -35,6 +26,7 @@
             </select>
         </div>
         
+        <!-- Preț Produs -->
         <div class="mb-3">
             <label for="price" class="form-label">Preț (RON):</label>
             <input type="number" class="form-control" id="price" name="price" required step="0.01">
@@ -49,47 +41,78 @@
             <textarea class="form-control" id="description" name="description" rows="4" readonly></textarea>
         </div>
         
+        <!-- Buton de Adăugare Produs -->
         <button type="submit" class="btn btn-primary w-100">Adaugă Produs</button>
         <a href="/" class="btn btn-secondary w-100 mt-3">Înapoi la Produse</a>
     </form>
 </div>
 {% endblock %}
 
+<!-- ✅ Blocul de scripturi mutat în blocul corect -->
+{% block scripts %}
 <script>
-    // ✅ Generare categorie sugerată
-    $("#suggestCategoryBtn").click(function(){
-        var name = $("#name").val().trim();
-        if(name) {
-            $.post("/suggest_category", {name: name}, function(data) {
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("✅ JavaScript încărcat complet!");
+
+        document.getElementById('suggestCategoryBtn').addEventListener('click', async function () {
+            const name = document.getElementById('name').value.trim();
+            console.log("Sugestie categorie apăsată!", name);
+
+            if (!name) {
+                alert("Introduceți numele produsului înainte de a sugera categoria!");
+                return;
+            }
+
+            try {
+                const response = await fetch('/suggest_category', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({name: name})
+                });
+                const data = await response.json();
+                console.log("Răspuns server:", data);
                 if (data.suggested_category) {
-                    $("#suggestedCategory").text(data.suggested_category);
-                } else if (data.error) {
-                    alert("Eroare: " + data.error);
+                    document.getElementById('suggestedCategory').textContent = data.suggested_category;
+                    document.getElementById('category').value = data.suggested_category;
+                } else {
+                    alert(data.error);
                 }
-            });
-        } else {
-            alert("Introduceți numele produsului înainte de a genera categoria sugerată!");
-        }
-    });
+            } catch (error) {
+                console.error("❌ Eroare la generarea categoriei:", error);
+            }
+        });
 
-    // ✅ Generarea descrierii produsului
-    $("#generateBtn").click(function(){
-        var name = $("#name").val();
-        var category = $("#category").val();
+        document.getElementById('generateBtn').addEventListener('click', async function () {
+            const name = document.getElementById('name').value.trim();
+            const category = document.getElementById('category').value.trim();
+            console.log("Generare descriere apăsată!", name, category);
 
-        if(name && category) {
-            $.post("/generate_description", {name: name, category: category}, function(data) {
+            if (!name || !category) {
+                alert("Completați numele și categoria înainte de a genera descrierea!");
+                return;
+            }
+
+            try {
+                const response = await fetch('/generate_description', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({name: name, category: category})
+                });
+                const data = await response.json();
+                console.log("Răspuns server pentru descriere:", data);
                 if (data.description) {
-                    $("#description").val(data.description);
-                } else if (data.error) {
-                    alert("Eroare: " + data.error);
+                    document.getElementById('description').value = data.description;
+                } else {
+                    alert(data.error);
                 }
-            });
-        } else {
-            alert("Completează numele și categoria înainte de generare!");
-        }
+            } catch (error) {
+                console.error("❌ Eroare la generarea descrierii:", error);
+            }
+        });
     });
 </script>
-
-</body>
-</html>
+{% endblock %}
