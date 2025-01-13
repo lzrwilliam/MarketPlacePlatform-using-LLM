@@ -2,6 +2,20 @@
 {% block title %}Detalii Produs{% endblock %}
 
 {% block content %}
+<!-- Mesaje Flash -->
+<div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Închide"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
 <!-- Sectiune principala  produs -->
 <div class="container mt-5 p-4 bg-white shadow-sm rounded">
     <h1 class="text-center mb-4">{{ product.name }}</h1>

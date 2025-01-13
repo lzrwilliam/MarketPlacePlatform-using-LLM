@@ -406,6 +406,23 @@ def add_review(product_id):
     """Adaugă un review scris de utilizator sau generat de LLM"""
     rating = int(request.form.get('rating'))
     content = request.form.get('content')
+    
+    
+    try:
+        chat_session = model.start_chat(history=[])
+        prompt = (f"Check if the following review is offensive or inappropriate in Romanian language:\n"
+                  f"Review: {content}\n"
+                  "Respond only with 'YES' if offensive or 'NO' if appropriate.")
+        response = chat_session.send_message(prompt)
+        if "YES" in response.text.upper():
+            flash("Recenzia conține conținut ofensator și nu a fost acceptată!")
+            return redirect(url_for('view_product', product_id=product_id))
+    except Exception as e:
+        flash("Eroare la verificarea conținutului!")
+        print(str(e))
+        return redirect(url_for('view_product', product_id=product_id))
+    
+    
     existing_review = Review.query.filter_by(user_id=session["user_id"], product_id=product_id).first()
     
     if existing_review:
