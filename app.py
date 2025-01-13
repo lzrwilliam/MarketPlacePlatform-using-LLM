@@ -48,8 +48,8 @@ def generate_personalized_description(product_name, category, user_id):
     interactions = UserInteraction.query.filter_by(user_id=user_id).all()
     purchased_products = PurchaseHistory.query.filter_by(user_id=user_id).all()
     
-    viewed_categories = [Product.query.get(i.product_id).category for i in interactions]
-    purchased_categories = [Product.query.get(i.product_id).category for i in purchased_products]
+    viewed_categories = [db.session.get(Product, i.product_id).category for i in interactions]
+    purchased_categories = [db.session.get(Product, i.product_id).category for i in purchased_products]
 
     try:
         chat_session = model.start_chat(history=[])
@@ -65,7 +65,7 @@ def generate_personalized_description(product_name, category, user_id):
         final_description = response.text.strip().split("**Opțiune")[0].strip()
         return final_description
     except Exception as e:
-        return "Descriere indisponibilă."
+        return "Descriere indisponibila."
 
     
     
@@ -78,8 +78,8 @@ def get_recommended_products(user_id):
         return Product.query.order_by(Product.purchases.desc(), Product.views.desc()).limit(5).all()
     
    
-    viewed_categories = [Product.query.get(i.product_id).category for i in viewed]
-    purchased_categories = [Product.query.get(i.product_id).category for i in purchased]
+    viewed_categories = [db.session.get(Product, i.product_id).category for i in viewed]
+    purchased_categories = [db.session.get(Product, i.product_id).category for i in purchased]
 
     all_categories = list(set(viewed_categories + purchased_categories))
 
@@ -112,54 +112,54 @@ def get_content_based_recommendations(product):
     
     try:
         chat_session = model.start_chat(history=[])
-        prompt = f"Convert the following product description into a numeric vector for similarity comparison: '{product.description}'"
+        prompt = (
+            f"Generate a numeric vector representation for the following product description: '{product.description}'. "
+            f"Respond only with a list of numbers separated by commas. No explanations, no options, just the list."
+        )
         response = chat_session.send_message(prompt)
         
-        try:
-            current_vector = [float(x) for x in response.text.strip().split(",")]
-        except ValueError:
-            print("Invalid vector response, using name and category fallback:", response.text)
-            
-            # Daca vectorul nu poate fi creat, fallback pe nume si categorie
-            return Product.query.filter(
-                Product.category == product.category, Product.id != product.id
-            ).order_by(Product.views.desc()).limit(5).all()
-        
+        response_text = response.text.strip()
+        if all(char.isdigit() or char in ",. " for char in response_text):
+            current_vector = [float(x) for x in response_text.split(",")]
+        else:
+            raise ValueError("Invalid numeric vector format received.")
+
         similar_products = []
         for prod in all_products:
-            prompt = f"Convert the following product description into a vector representation: '{prod.description}'"
+            prompt = (
+                f"Generate a numeric vector representation for the following product description: '{prod.description}'. "
+                f"Respond only with a list of numbers separated by commas."
+            )
             response = chat_session.send_message(prompt)
-            
+            response_text = response.text.strip()
+
             try:
-                product_vector = [float(x) for x in response.text.strip().split(",")]
+                product_vector = [float(x) for x in response_text.split(",")]
                 similarity_score = sum(a * b for a, b in zip(current_vector, product_vector))
-                
                 
                 name_similarity = 1.0 if product.name.lower() in prod.name.lower() else 0.5
                 
-                #  Formula hibrida: 70% descriere, 30% nume similar
+                # Calculul scorului final (70% pe descriere, 30% pe nume)
                 final_score = (similarity_score * 0.7) + (name_similarity * 0.3)
-                
                 similar_products.append((prod, final_score))
             except ValueError:
-                print(f"Eroare la conversia vectorului pentru produsul: {prod.name}")
+                print(f"Error parsing vector for product: {prod.name}")
                 continue  
 
-        #  Sortare dupa scorul combinat
         if similar_products:
             similar_products = sorted(similar_products, key=lambda x: x[1], reverse=True)[:5]
             return [prod[0] for prod in similar_products]
-        else:
-            # Fallback: bazat doar pe categorie
-            return Product.query.filter(
-                Product.category == product.category, Product.id != product.id
-            ).limit(5).all()
-    
-    except Exception as e:
-        print(f"Eroare in generarea recomandărilor bazate pe continut: {str(e)}")
+
         return Product.query.filter(
             Product.category == product.category, Product.id != product.id
         ).limit(5).all()
+
+    except Exception as e:
+        print(f"Error generating recommendations: {str(e)}")
+        return Product.query.filter(
+            Product.category == product.category, Product.id != product.id
+        ).limit(5).all()
+
 
 
 def login_required(f):
@@ -323,7 +323,8 @@ def add_product():
 
 @app.route("/view_product/<int:product_id>")
 def view_product(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = db.session.get(Product, product_id)
+    #Product.query.get_or_404(product_id)
     product.views += 1
     db.session.commit()
 
@@ -347,7 +348,7 @@ def view_product(product_id):
 
 @app.route("/purchase/<int:product_id>")
 def purchase_product(product_id):
-    product = Product.query.get(product_id)
+    product = db.session.get(Product, product_id)
     product.purchases += 1
     db.session.commit()
 
@@ -449,7 +450,7 @@ def generate_review(product_id):
     rating = data.get("rating")
     keywords = data.get("keywords", "").split(',')
 
-    product = Product.query.get(product_id)
+    product = db.session.get(Product, product_id)
     try:
         chat_session = model.start_chat(history=[])
         prompt = (
