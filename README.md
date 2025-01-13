@@ -32,7 +32,6 @@ This is a web-based e-commerce platform built using Flask and SQLAlchemy, with i
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd flask-llm-ecommerce
    ```
 2. Install the required packages:
    ```bash
