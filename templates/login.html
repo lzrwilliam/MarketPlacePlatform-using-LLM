@@ -8,6 +8,18 @@
 </head>
 <body class="bg-light">
 
+    {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+        <div class="container mt-3">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
 <div class="container mt-5">
     <h1 class="text-center">Autentificare</h1>
     
