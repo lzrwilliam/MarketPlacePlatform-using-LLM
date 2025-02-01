@@ -366,6 +366,7 @@ def view_product(product_id):
     #Product.query.get_or_404(product_id)
     product.views += 1
     db.session.commit()
+  
 
     start_time = datetime.now(timezone.utc)  
     session['start_time'] = start_time.timestamp()  
@@ -383,8 +384,37 @@ def view_product(product_id):
         db.session.commit()
 
     similar_products = get_content_based_recommendations(product)
+    
+     # Verificăm dacă FAQ-urile sunt în cache
+    faqs = cache.get(f"faqs_{product.id}")
 
-    return render_template("view_product.html", product=product, personalized_description=personalized_description, similar_products=similar_products, has_purchased=has_purchased, already_reviewed=already_reviewed)
+    if not faqs:
+        faqs = []
+        try:
+            chat_session = model.start_chat(history=[])
+            prompt = (
+                f"Generează între 3 și 5 întrebări frecvente pentru produsul '{product.name}' din categoria '{product.category}'. "
+                f"Descrierea produsului este: '{product.description}'. "
+                f"Întrebările ar trebui să fie despre utilizare, caracteristici și avantaje. "
+                f"Formatul răspunsului trebuie să fie o listă JSON cu câmpurile 'question' și 'answer'. "
+                f"Scrie în limba română."
+            )
+            response = chat_session.send_message(prompt)
+            
+            # Încercăm să convertim răspunsul în JSON
+            try:
+                faqs = json.loads(response.text.strip())
+                if isinstance(faqs, list) and all(isinstance(faq, dict) and "question" in faq and "answer" in faq for faq in faqs):
+                    cache.set(f"faqs_{product.id}", faqs, timeout=3600)
+                else:
+                    faqs = [{"question": "Nu există întrebări disponibile", "answer": "Nu am reușit să generăm întrebări."}]
+            except json.JSONDecodeError:
+                faqs = [{"question": "Nu există întrebări disponibile", "answer": "Nu am reușit să generăm întrebări."}]
+        except Exception as e:
+            print(f"Eroare la generarea FAQ: {str(e)}")
+            faqs = [{"question": "Nu există întrebări disponibile", "answer": "Nu am reușit să generăm întrebări."}]
+
+    return render_template("view_product.html", product=product, personalized_description=personalized_description, similar_products=similar_products, has_purchased=has_purchased, already_reviewed=already_reviewed, faqs=faqs)
 
 
 @app.route("/purchase/<int:product_id>")
@@ -504,6 +534,60 @@ def generate_review(product_id):
         return jsonify({"generated_review": generated_review})
     except Exception as e:
         return jsonify({"error": str(e)})
+
+from sqlalchemy import or_
+
+
+@app.route("/search_products", methods=["POST"])
+def search_products():
+    query = request.form.get("query", "").strip()
+
+    if not query:
+        flash("Introduceți un termen de căutare!", "danger")
+        return redirect(url_for("home"))
+
+    try:
+        # 🔍 1. Căutare directă în baza de date
+        products = Product.query.filter(
+            or_(
+                Product.name.ilike(f"%{query}%"),
+                Product.category.ilike(f"%{query}%"),
+                Product.description.ilike(f"%{query}%")
+            )
+        ).all()
+
+        # daca gasim rezultate le afisam
+        if products:
+            return render_template("search_results.html", produse=products, query=query)
+
+        # daca nu avem rezultate apelam llm pt sugestii
+        all_products = Product.query.all()
+        product_list = ", ".join([p.name for p in all_products])  # Listam toate produsele
+
+        chat_session = model.start_chat(history=[])
+        prompt = (
+            f"Avem următoarele produse disponibile: {product_list}. "
+            f"Utilizatorul caută: '{query}'. "
+            f"Încearcă să identifici cele mai relevante produse din această listă care se potrivesc cererii. "
+            f"Returnează doar numele produselor separate prin virgulă, fără alt text."
+        )
+        response = chat_session.send_message(prompt)
+
+        # 🔍 Extragem lista de produse returnată de LLM
+        suggested_products = response.text.strip().split(",") if response.text else []
+        suggested_products = [p.strip() for p in suggested_products if p.strip()]
+
+        # 🔍 Verificăm dacă produsele LLM există în baza de date
+        if suggested_products:
+            products = Product.query.filter(Product.name.in_(suggested_products)).all()
+
+        
+        return render_template("search_results.html", produse=products, query=query)
+
+    except Exception as e:
+        flash("Eroare la căutare!", "danger")
+        print(f"Eroare căutare: {str(e)}")
+        return redirect(url_for("home"))
 
 
 

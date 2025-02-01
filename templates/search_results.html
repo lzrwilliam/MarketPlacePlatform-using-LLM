@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Rezultatele căutării{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Rezultate pentru: "{{ query }}"</h1>
+
+    {% if produse %}
+    <div class="row">
+        {% for produs in produse %}
+        <div class="col-md-3 mb-4 product-card" data-category="{{ produs.category }}">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title">{{ produs.name }}</h5>
+                    <p class="card-text"><strong>Preț:</strong> {{ produs.price }} RON</p>
+                    <p class="card-text"><strong>Categorie:</strong> {{ produs.category }}</p>
+                    <a href="{{ url_for('view_product', product_id=produs.id) }}" class="btn btn-secondary">Vezi Detalii</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+        <p class="text-center text-muted">❌ Nu am găsit produse care să corespundă căutării.</p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-primary">🏠 Înapoi la Acasă</a>
+    </div>
+</div>
+{% endblock %}
