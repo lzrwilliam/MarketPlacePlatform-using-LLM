@@ -568,7 +568,7 @@ def search_products():
         prompt = (
             f"Avem următoarele produse disponibile: {product_list}. "
             f"Utilizatorul caută: '{query}'. "
-            f"Încearcă să identifici cele mai relevante produse din această listă care se potrivesc cererii. "
+            f"Încearcă să identifici cele mai relevante produse din această listă care se potrivesc cererii utilizatorului, proceseaza bine ce a cerut utilizatorul. "
             f"Returnează doar numele produselor separate prin virgulă, fără alt text."
         )
         response = chat_session.send_message(prompt)
