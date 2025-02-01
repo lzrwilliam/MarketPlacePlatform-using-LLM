@@ -33,15 +33,7 @@
 
 
 <!-- Dropdown de filtrare -->
-<div class="container mt-5">
-    <label for="categoryFilter" class="form-label"><strong>Filtreaza dupa categorie:</strong></label>
-    <select class="form-select" id="categoryFilter" onchange="filterProducts()">
-        <option value="Toate">Toate</option>
-        {% for category in AVAILABLE_CATEGORIES %}
-        <option value="{{ category }}">{{ category }}</option>
-        {% endfor %}
-    </select>
-</div>
+
 
 
 <!-- Grid pentru Produse Recomandate cu mai multe produse per rând -->

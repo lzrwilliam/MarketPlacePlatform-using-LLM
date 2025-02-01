@@ -30,6 +30,10 @@ class UserInteraction(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())    
     time_spent = db.Column(db.Float, default=0.0)  # timp petrecut pe pagina in secunde
+    personalized_description = db.Column(db.Text, nullable=True)
+    last_updated = db.Column(db.DateTime, default=db.func.current_timestamp())  # Stocăm ca UTC
+    
+    
 
     
 

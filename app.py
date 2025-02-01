@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from models import db, Product, UserInteraction, User, PurchaseHistory, Review
 import os
 import google.generativeai as genai
+from flask_caching import Cache
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -42,33 +43,54 @@ model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     generation_config=generation_config
 )
+from datetime import datetime, timezone
+def generate_personalized_description(product_name, category, user_id, product_id):
+    """Verifică dacă există o descriere salvată și o folosește. Dacă nu, generează și o salvează."""
+    
+    interaction = UserInteraction.query.filter_by(user_id=user_id, product_id=product_id).first()
 
-def generate_personalized_description(product_name, category, user_id):
-    """Generare descriere personalizată clară și de calitate, fără opțiuni multiple."""
+    if interaction and interaction.personalized_description:
+        last_updated_aware = interaction.last_updated.replace(tzinfo=timezone.utc) if interaction.last_updated else None
+        if last_updated_aware and (datetime.now(timezone.utc) - last_updated_aware).days < 2:
+            return interaction.personalized_description
+
+    if not interaction:
+        interaction = UserInteraction(user_id=user_id, product_id=product_id)
+        db.session.add(interaction)
+        db.session.commit()
+
+    # Generăm o descriere nouă cu LLM
     interactions = UserInteraction.query.filter_by(user_id=user_id).all()
     purchased_products = PurchaseHistory.query.filter_by(user_id=user_id).all()
-    
-    viewed_categories = [db.session.get(Product, i.product_id).category for i in interactions]
-    purchased_categories = [db.session.get(Product, i.product_id).category for i in purchased_products]
+
+    viewed_categories = [db.session.get(Product, i.product_id).category for i in interactions if i.product_id]
+    purchased_categories = [db.session.get(Product, i.product_id).category for i in purchased_products if i.product_id]
 
     try:
         chat_session = model.start_chat(history=[])
         prompt = (
-            f"Generate a single, high-quality and ready-to-use product description for '{product_name}' "
-            f"in the '{category}' category. Do not list multiple options or placeholders. "
-            f"Ensure the description is concise yet descriptive, highlighting key benefits. "
+            f"Generate a single, high-quality product description for '{product_name}' in '{category}'. "
+            f"Highlight key benefits. "
             f"The user frequently views: {', '.join(viewed_categories)}. "
-            f"The user has purchased products from: {', '.join(purchased_categories)}."
-            f"The output must be in romanian."
+            f"The user has purchased from: {', '.join(purchased_categories)}. "
+            f"The output must be in Romanian."
         )
         response = chat_session.send_message(prompt)
-        final_description = response.text.strip().split("**Opțiune")[0].strip()
-        return final_description
-    except Exception as e:
-        return "Descriere indisponibila."
+        final_description = response.text.strip()
 
-    
-    
+        # Dacă răspunsul LLM este gol sau invalid, nu actualizăm baza de date
+        if not final_description:
+            return "Descriere indisponibilă."
+
+        interaction.personalized_description = final_description
+        interaction.last_updated = datetime.now(timezone.utc)
+        db.session.commit()
+
+        return final_description
+
+    except Exception as e:
+        print(f"Eroare la generarea descrierii: {str(e)}")
+        return "Descriere indisponibilă."
 
 def get_recommended_products(user_id):
     viewed = UserInteraction.query.filter_by(user_id=user_id).order_by(UserInteraction.id.desc()).limit(10).all()
@@ -106,15 +128,29 @@ def get_recommended_products(user_id):
     return produse_recomandate
     
 
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 def get_content_based_recommendations(product):
+    """Evită apelurile API inutile folosind caching și verificări suplimentare."""
+    
+    cache_key = f"recommendations_{product.id}"
+    cached_recommendations = cache.get(cache_key)
+    
+    if cached_recommendations:
+        print("✅ DEBUG: Folosim recomandările din cache")
+        return cached_recommendations
+
     all_products = Product.query.filter(Product.id != product.id).all()
+    
+    # ⚠️ Evităm apelul LLM dacă descrierea produsului este goală
+    if not product.description or product.description.strip() == "":
+        return Product.query.filter(Product.category == product.category, Product.id != product.id).limit(5).all()
     
     try:
         chat_session = model.start_chat(history=[])
         prompt = (
-            f"Generate a numeric vector representation for the following product description: '{product.description}'. "
-            f"Respond only with a list of numbers separated by commas. No explanations, no options, just the list."
+            f"Generate a numeric vector representation for '{product.description}'. "
+            f"Respond only with a list of numbers separated by commas."
         )
         response = chat_session.send_message(prompt)
         
@@ -127,7 +163,7 @@ def get_content_based_recommendations(product):
         similar_products = []
         for prod in all_products:
             prompt = (
-                f"Generate a numeric vector representation for the following product description: '{prod.description}'. "
+                f"Generate a numeric vector representation for '{prod.description}'. "
                 f"Respond only with a list of numbers separated by commas."
             )
             response = chat_session.send_message(prompt)
@@ -139,7 +175,6 @@ def get_content_based_recommendations(product):
                 
                 name_similarity = 1.0 if product.name.lower() in prod.name.lower() else 0.5
                 
-                # Calculul scorului final (70% pe descriere, 30% pe nume)
                 final_score = (similarity_score * 0.7) + (name_similarity * 0.3)
                 similar_products.append((prod, final_score))
             except ValueError:
@@ -148,7 +183,10 @@ def get_content_based_recommendations(product):
 
         if similar_products:
             similar_products = sorted(similar_products, key=lambda x: x[1], reverse=True)[:5]
-            return [prod[0] for prod in similar_products]
+            recommended_products = [prod[0] for prod in similar_products]
+            
+            cache.set(cache_key, recommended_products, timeout=3600)
+            return recommended_products
 
         return Product.query.filter(
             Product.category == product.category, Product.id != product.id
@@ -159,6 +197,7 @@ def get_content_based_recommendations(product):
         return Product.query.filter(
             Product.category == product.category, Product.id != product.id
         ).limit(5).all()
+
 
 
 
@@ -335,13 +374,15 @@ def view_product(product_id):
 
     already_reviewed = Review.query.filter_by(user_id=session["user_id"], product_id=product_id).first() is not None
 
-    
-    personalized_description = generate_personalized_description(product.name, product.category, session["user_id"])
-    similar_products = get_content_based_recommendations(product)
+    personalized_description = generate_personalized_description(product.name, product.category, session["user_id"], product_id)
 
-    new_interaction = UserInteraction(user_id=session["user_id"], product_id=product_id)
-    db.session.add(new_interaction)
-    db.session.commit()
+    existing_interaction = UserInteraction.query.filter_by(user_id=session["user_id"], product_id=product_id).first()
+    if not existing_interaction:
+        new_interaction = UserInteraction(user_id=session["user_id"], product_id=product_id)
+        db.session.add(new_interaction)
+        db.session.commit()
+
+    similar_products = get_content_based_recommendations(product)
 
     return render_template("view_product.html", product=product, personalized_description=personalized_description, similar_products=similar_products, has_purchased=has_purchased, already_reviewed=already_reviewed)
 
